@@ -16,7 +16,7 @@ document.querySelectorAll('.window').forEach(win => {
 // DRAG: only from .winbar, updating left/top
 interact('.window').draggable({
   inertia: false,
-  allowFrom: '.winbar',
+  allowFrom: '.winbar',    // only start drag on the title bar
   modifiers: [
     interact.modifiers.restrictRect({
       restriction: 'parent',
@@ -26,21 +26,19 @@ interact('.window').draggable({
   listeners: {
     move(event) {
       const win = event.target;
-      const curLeft = parseFloat(win.style.left) || 0;
-      const curTop  = parseFloat(win.style.top)  || 0;
-      win.style.left = curLeft + event.dx + 'px';
-      win.style.top  = curTop  + event.dy + 'px';
+      const curL = parseFloat(win.style.left) || 0;
+      const curT = parseFloat(win.style.top)  || 0;
+      win.style.left = curL + event.dx + 'px';
+      win.style.top  = curT + event.dy + 'px';
     }
   }
 });
 
-// RESIZE: only from edges – bigger hot-zone, no inertia
+// RESIZE: only from edges – no margin, no inertia, ignore .winbar
 interact('.window').resizable({
-  // which edges to listen on
-  edges: { left: true, right: true, top: true, bottom: true },
-  // increase the active area by 20px on each edge
-  margin: 20,
+  edges: { left:true, right:true, top:true, bottom:true },
   inertia: false,
+  ignoreFrom: '.winbar',   // never resize when starting on the title bar
   modifiers: [
     interact.modifiers.restrictSize({
       min: { width: 170, height: 110 },
@@ -50,22 +48,19 @@ interact('.window').resizable({
   listeners: {
     move(event) {
       const win = event.target;
-      // get current left/top
       let left = parseFloat(win.style.left) || 0;
       let top  = parseFloat(win.style.top)  || 0;
 
-      // if you pull the left/top edges, adjust position
+      // if dragging left/top edge, adjust position
       if (event.edges.left)  left += event.deltaRect.left;
       if (event.edges.top)   top  += event.deltaRect.top;
 
-      // apply new size
+      // apply size
       win.style.width  = event.rect.width  + 'px';
       win.style.height = event.rect.height + 'px';
-      // apply new position
+      // apply position
       win.style.left   = left + 'px';
       win.style.top    = top  + 'px';
     }
-    // you can add an end(event) handler here if needed
   }
 });
-
