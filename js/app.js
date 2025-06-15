@@ -34,9 +34,12 @@ interact('.window').draggable({
   }
 });
 
-// RESIZE: only from edges, updating left/top and width/height
+// RESIZE: only from edges – bigger hot-zone, no inertia
 interact('.window').resizable({
-  edges: { left:true, right:true, top:true, bottom:true },
+  // which edges to listen on
+  edges: { left: true, right: true, top: true, bottom: true },
+  // increase the active area by 20px on each edge
+  margin: 20,
   inertia: false,
   modifiers: [
     interact.modifiers.restrictSize({
@@ -47,22 +50,22 @@ interact('.window').resizable({
   listeners: {
     move(event) {
       const win = event.target;
-      let { left, top } = {
-        left: parseFloat(win.style.left) || 0,
-        top: parseFloat(win.style.top) || 0
-      };
+      // get current left/top
+      let left = parseFloat(win.style.left) || 0;
+      let top  = parseFloat(win.style.top)  || 0;
 
-      // update position if left/top edge is dragged
+      // if you pull the left/top edges, adjust position
       if (event.edges.left)  left += event.deltaRect.left;
       if (event.edges.top)   top  += event.deltaRect.top;
 
-      // apply size
+      // apply new size
       win.style.width  = event.rect.width  + 'px';
       win.style.height = event.rect.height + 'px';
-
-      // apply position
-      win.style.left = left + 'px';
-      win.style.top  = top  + 'px';
+      // apply new position
+      win.style.left   = left + 'px';
+      win.style.top    = top  + 'px';
     }
+    // you can add an end(event) handler here if needed
   }
 });
+
