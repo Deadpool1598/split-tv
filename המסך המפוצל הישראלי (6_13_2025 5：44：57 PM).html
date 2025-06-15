@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>המסך המפוצל הישראלי - Streams</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: #18191a;
+      font-family: "Segoe UI", "Arial", sans-serif;
+      user-select: none;
+      min-height: 100vh;
+    }
+    #header {
+      width: 100vw;
+      padding: 18px 0 10px 0;
+      text-align: center;
+      font-size: 2.1rem;
+      background: rgba(15,15,16,0.94);
+      color: #d1d5db;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #222;
+      position: relative;
+      z-index: 10;
+      box-shadow: 0 2px 14px rgba(0,0,0,.22);
+    }
+    .window {
+      position: absolute;
+      background: #232428;
+      border-radius: 13px;
+      border: 1.5px solid #222;
+      min-width: 170px;
+      min-height: 110px;
+      width: 370px;
+      height: 208px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.44);
+      overflow: hidden;
+      z-index: 1;
+      transition: border 0.14s, box-shadow 0.13s;
+      display: flex;
+      flex-direction: column;
+    }
+    .window.active {
+      border: 2.2px solid #3fa5fa;
+      z-index: 50 !important;
+      box-shadow: 0 4px 30px #0051d627, 0 1.5px 12px #2229;
+    }
+    .winbar {
+      height: 33px;
+      background: #17171a;
+      color: #f4f6fa;
+      font-size: 15.5px;
+      font-weight: 600;
+      padding: 0 0 0 13px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #232323;
+      cursor: grab;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+    .stream-wrap {
+      flex: 1;
+      background: #141516;
+    }
+    .stream-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #000;
+      display: block;
+    }
+    .window.resize-n { cursor: n-resize !important;}
+    .window.resize-s { cursor: s-resize !important;}
+    .window.resize-e { cursor: e-resize !important;}
+    .window.resize-w { cursor: w-resize !important;}
+    .window.resizing { transition: none !important; }
+    .winbar { cursor: grab; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+</head>
+<body>
+  <div id="header">המסך המפוצל הישראלי – Streams</div>
+  <!-- Stream windows, in fixed starting places -->
+  <div class="window" style="left: 2vw; top: 65px;">
+    <div class="winbar">ערוץ 12</div>
+    <div class="stream-wrap">
+      <iframe src="https://www.livehdtv.com/embed/channel-12-live-stream-from-isreal/" allowfullscreen></iframe>
+    </div>
+  </div>
+  <div class="window" style="left: 380px; top: 100px;">
+    <div class="winbar">ערוץ 14</div>
+    <div class="stream-wrap">
+      <iframe src="https://www.livehdtv.com/embed/channel-14-isreal-live/" allowfullscreen></iframe>
+    </div>
+  </div>
+  <div class="window" style="left: 760px; top: 160px;">
+    <div class="winbar">כאן 11</div>
+    <div class="stream-wrap">
+      <iframe src="https://www.livehdtv.com/embed/kan-11-live-stream-israel/" allowfullscreen></iframe>
+    </div>
+  </div>
+  <div class="window" style="left: 2vw; top: 290px;">
+    <div class="winbar">i24news (EN)</div>
+    <div class="stream-wrap">
+      <iframe src="https://www.livehdtv.com/embed/i24news-live-stream-israel/" allowfullscreen></iframe>
+    </div>
+  </div>
+  <div class="window" style="left: 380px; top: 370px;">
+    <div class="winbar">i24news (HE)</div>
+    <div class="stream-wrap">
+      <iframe src="https://www.livehdtv.com/embed/i24news-hebrew/" allowfullscreen></iframe>
+    </div>
+  </div>
+  <div class="window" style="left: 760px; top: 420px;">
+    <div class="winbar">ערוץ 13</div>
+    <div class="stream-wrap">
+      <iframe src="https://www.livehdtv.com/embed/channel-13-live/" allowfullscreen></iframe>
+    </div>
+  </div>
+  <script>
+    // ====== Windows start at fixed left/top positions. ======
+    // Always clear transforms/data-x/y on load so each reload is fresh:
+    document.querySelectorAll('.window').forEach(win => {
+      win.style.transform = '';
+      win.removeAttribute('data-x');
+      win.removeAttribute('data-y');
+    });
+
+    // ====== Dragging: only from the winbar ======
+    let topZ = 20;
+    document.querySelectorAll('.window').forEach(win => {
+      // Bring to top on click
+      win.addEventListener('mousedown', function(e) {
+        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+        win.classList.add('active');
+        win.style.zIndex = ++topZ;
+      });
+      win.addEventListener('touchstart', function(e) {
+        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+        win.classList.add('active');
+        win.style.zIndex = ++topZ;
+      }, {passive:true});
+    });
+
+    interact('.window')
+      .draggable({
+        inertia: true,
+        allowFrom: '.winbar',
+        ignoreFrom: '.stream-wrap',
+        listeners: {
+          start(event) {
+            const target = event.target;
+            if (!target.hasAttribute('data-x')) {
+              let left = parseFloat(target.style.left) || 0;
+              let top = parseFloat(target.style.top) || 0;
+              target.setAttribute('data-x', left);
+              target.setAttribute('data-y', top);
+              target.style.left = '';
+              target.style.top = '';
+              target.style.transform = `translate(${left}px,${top}px)`;
+            }
+          },
+          move(event) {
+            const target = event.target;
+            let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+            let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+            target.style.transform = `translate(${x}px, ${y}px)`;
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+          }
+        }
+      });
+
+    // ====== Resizing: only from the edges, not from corners, no aspect ratio ======
+    function edgeInfo(e, win) {
+      const rect = win.getBoundingClientRect();
+      const edgeSize = 8;
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+      let edge = null;
+      if (y < edgeSize) edge = 'n';
+      else if (y > rect.height - edgeSize) edge = 's';
+      else if (x < edgeSize) edge = 'w';
+      else if (x > rect.width - edgeSize) edge = 'e';
+      return edge;
+    }
+    let resizing = null;
+    let start = {};
+    let startRect = {};
+    function stopResizing() {
+      if (resizing) {
+        resizing.win.classList.remove('resizing','resize-n','resize-s','resize-e','resize-w');
+        resizing = null;
+        document.body.style.userSelect = '';
+      }
+    }
+    document.querySelectorAll('.window').forEach(win => {
+      win.addEventListener('mousedown', function(e) {
+        const edge = edgeInfo(e, win);
+        if (edge) {
+          e.preventDefault();
+          resizing = { win, edge };
+          win.classList.add('resizing', 'resize-' + edge);
+          // Get base transform or left/top
+          let baseX = 0, baseY = 0;
+          if (win.hasAttribute('data-x')) baseX = parseFloat(win.getAttribute('data-x')) || 0;
+          if (win.hasAttribute('data-y')) baseY = parseFloat(win.getAttribute('data-y')) || 0;
+          start = { x: e.clientX, y: e.clientY, baseX, baseY };
+          startRect = win.getBoundingClientRect();
+          document.body.style.userSelect = 'none';
+        }
+      });
+      win.addEventListener('mousemove', function(e) {
+        // Change cursor on edge
+        const edge = edgeInfo(e, win);
+        win.classList.remove('resize-n','resize-s','resize-e','resize-w');
+        if (edge) win.classList.add('resize-' + edge);
+      });
+      win.addEventListener('mouseleave', function(e) {
+        win.classList.remove('resize-n','resize-s','resize-e','resize-w');
+      });
+    });
+
+    window.addEventListener('mousemove', function(e) {
+      if (resizing) {
+        const { win, edge } = resizing;
+        let dx = e.clientX - start.x;
+        let dy = e.clientY - start.y;
+        let width = startRect.width;
+        let height = startRect.height;
+        let x = start.baseX;
+        let y = start.baseY;
+        const minWidth = 170, minHeight = 110, maxWidth = 900, maxHeight = 500;
+        if (edge === 'e') {
+          width = Math.min(maxWidth, Math.max(minWidth, width + dx));
+        }
+        if (edge === 's') {
+          height = Math.min(maxHeight, Math.max(minHeight, height + dy));
+        }
+        if (edge === 'w') {
+          let newWidth = Math.min(maxWidth, Math.max(minWidth, width - dx));
+          x += width - newWidth;
+          width = newWidth;
+        }
+        if (edge === 'n') {
+          let newHeight = Math.min(maxHeight, Math.max(minHeight, height - dy));
+          y += height - newHeight;
+          height = newHeight;
+        }
+        win.style.width = width+'px';
+        win.style.height = height+'px';
+        win.style.transform = `translate(${x}px,${y}px)`;
+        win.setAttribute('data-x', x);
+        win.setAttribute('data-y', y);
+      }
+    });
+    // Fix: stop resizing on mouseup/touchend *anywhere* on the page!
+    window.addEventListener('mouseup', stopResizing);
+    window.addEventListener('touchend', stopResizing);
+
+    // First window active at start
+    setTimeout(()=>{
+      let first = document.querySelector('.window');
+      if (first) { first.classList.add('active'); first.style.zIndex = ++topZ; }
+    },50);
+  </script>
+</body>
+</html>
