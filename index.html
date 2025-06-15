@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>המסך המפוצל הישראלי – Streams</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Link to your stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -58,9 +57,70 @@
     </div>
   </div>
 
-  <!-- 1) Interact.js for drag & resize -->
+  <!-- 1) Interact.js library -->
   <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
   <!-- 2) Your app logic -->
-  <script src="js/app.js"></script>
+  <script>
+  // Bring clicked window to front & highlight
+  let zIndexCounter = 200;
+  document.querySelectorAll('.window').forEach(win => {
+    win.addEventListener('mousedown', ()=>{
+      document.querySelectorAll('.window').forEach(w=>w.classList.remove('active'));
+      win.classList.add('active');
+      win.style.zIndex = ++zIndexCounter;
+    });
+    win.addEventListener('touchstart', ()=>{
+      document.querySelectorAll('.window').forEach(w=>w.classList.remove('active'));
+      win.classList.add('active');
+      win.style.zIndex = ++zIndexCounter;
+    }, {passive:true});
+  });
+
+  // DRAG: only from .winbar, no snapping
+  interact('.window').draggable({
+    inertia: false,
+    allowFrom: '.winbar',
+    listeners: {
+      move(event) {
+        const w = event.target;
+        const curL = parseFloat(w.style.left) || 0;
+        const curT = parseFloat(w.style.top)  || 0;
+        w.style.left = curL + event.dx + 'px';
+        w.style.top  = curT + event.dy + 'px';
+      }
+    }
+  });
+
+  // RESIZE: only from left, right, bottom; ignore title bar; no inertia
+  interact('.window').resizable({
+    edges: { left:true, right:true, bottom:true, top:false },
+    inertia: false,
+    ignoreFrom: '.winbar',
+    modifiers: [
+      interact.modifiers.restrictSize({
+        min: { width: 170, height: 110 },
+        max: { width: 900, height: 500 }
+      })
+    ],
+    listeners: {
+      move(event) {
+        const w = event.target;
+        let left = parseFloat(w.style.left) || 0;
+        let top  = parseFloat(w.style.top)  || 0;
+
+        // adjust position if left/bottom edges moved
+        if (event.edges.left)  left += event.deltaRect.left;
+        if (event.edges.top)   top  += event.deltaRect.top; // though top-edge is disabled
+
+        // apply new size
+        w.style.width  = event.rect.width  + 'px';
+        w.style.height = event.rect.height + 'px';
+        // apply new position
+        w.style.left   = left + 'px';
+        w.style.top    = top  + 'px';
+      }
+    }
+  });
+  </script>
 </body>
 </html>
