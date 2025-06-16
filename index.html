@@ -5,6 +5,11 @@
   <title>המסך המפוצל הישראלי – Streams</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- 1) Interact.js for drag/resize -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+  <!-- 2) HLS.js for .m3u8 playback -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
   <div id="header">המסך המפוצל הישראלי – Streams</div>
@@ -13,15 +18,36 @@
   <div class="window" style="left:20px; top:80px;">
     <div class="winbar">ערוץ 12</div>
     <div class="stream-wrap">
-      <iframe src="https://www.livehdtv.com/embed/channel-12-live-stream-from-isreal/" allowfullscreen></iframe>
+      <iframe
+        src="https://www.livehdtv.com/embed/channel-12-live-stream-from-isreal/"
+        allowfullscreen
+        style="width:100%; height:100%; border:none; display:block;"
+      ></iframe>
     </div>
   </div>
 
-  <!-- Window 2 -->
+  <!-- Window 2: ערוץ 14 with multiple sources -->
   <div class="window" style="left:420px; top:80px;">
     <div class="winbar">ערוץ 14</div>
-    <div class="stream-wrap">
-      <iframe src="https://www.livehdtv.com/embed/channel-14-isreal-live/" allowfullscreen></iframe>
+    <div class="stream-wrap" style="position:relative;">
+      <!-- source picker -->
+      <select id="ch14-source" style="position:absolute; top:8px; left:8px; z-index:500; padding:4px;">
+        <option value="embed">LiveHDTV Embed</option>
+        <option value="hls">Direct HLS Stream</option>
+      </select>
+
+      <!-- player container -->
+      <div
+        id="ch14-player"
+        style="position:absolute; top:0; left:0; width:100%; height:100%;"
+      >
+        <!-- default embed -->
+        <iframe
+          src="https://www.livehdtv.com/embed/channel-14-isreal-live/"
+          allowfullscreen
+          style="width:100%; height:100%; border:none; display:block;"
+        ></iframe>
+      </div>
     </div>
   </div>
 
@@ -29,7 +55,11 @@
   <div class="window" style="left:820px; top:80px;">
     <div class="winbar">כאן 11</div>
     <div class="stream-wrap">
-      <iframe src="https://www.livehdtv.com/embed/kan-11-live-stream-israel/" allowfullscreen></iframe>
+      <iframe
+        src="https://www.livehdtv.com/embed/kan-11-live-stream-israel/"
+        allowfullscreen
+        style="width:100%; height:100%; border:none; display:block;"
+      ></iframe>
     </div>
   </div>
 
@@ -37,7 +67,11 @@
   <div class="window" style="left:20px; top:320px;">
     <div class="winbar">i24news (EN)</div>
     <div class="stream-wrap">
-      <iframe src="https://www.livehdtv.com/embed/i24news-live-stream-israel/" allowfullscreen></iframe>
+      <iframe
+        src="https://www.livehdtv.com/embed/i24news-live-stream-israel/"
+        allowfullscreen
+        style="width:100%; height:100%; border:none; display:block;"
+      ></iframe>
     </div>
   </div>
 
@@ -45,7 +79,11 @@
   <div class="window" style="left:420px; top:340px;">
     <div class="winbar">i24news (HE)</div>
     <div class="stream-wrap">
-      <iframe src="https://www.livehdtv.com/embed/i24news-hebrew/" allowfullscreen></iframe>
+      <iframe
+        src="https://www.livehdtv.com/embed/i24news-hebrew/"
+        allowfullscreen
+        style="width:100%; height:100%; border:none; display:block;"
+      ></iframe>
     </div>
   </div>
 
@@ -53,74 +91,109 @@
   <div class="window" style="left:820px; top:360px;">
     <div class="winbar">ערוץ 13</div>
     <div class="stream-wrap">
-      <iframe src="https://www.livehdtv.com/embed/channel-13-live/" allowfullscreen></iframe>
+      <iframe
+        src="https://www.livehdtv.com/embed/channel-13-live/"
+        allowfullscreen
+        style="width:100%; height:100%; border:none; display:block;"
+      ></iframe>
     </div>
   </div>
 
-  <!-- 1) Interact.js library -->
-  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-  <!-- 2) Your app logic -->
+  <!-- Interact.js + stream-switcher logic -->
   <script>
-  // Bring clicked window to front & highlight
-  let zIndexCounter = 200;
-  document.querySelectorAll('.window').forEach(win => {
-    win.addEventListener('mousedown', ()=>{
-      document.querySelectorAll('.window').forEach(w=>w.classList.remove('active'));
-      win.classList.add('active');
-      win.style.zIndex = ++zIndexCounter;
+    // 1) Bring clicked window to front & highlight
+    let zIndexCounter = 200;
+    document.querySelectorAll('.window').forEach(win => {
+      const raise = () => {
+        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+        win.classList.add('active');
+        win.style.zIndex = ++zIndexCounter;
+      };
+      win.addEventListener('mousedown', raise);
+      win.addEventListener('touchstart', raise, { passive: true });
     });
-    win.addEventListener('touchstart', ()=>{
-      document.querySelectorAll('.window').forEach(w=>w.classList.remove('active'));
-      win.classList.add('active');
-      win.style.zIndex = ++zIndexCounter;
-    }, {passive:true});
-  });
 
-  // DRAG: only from .winbar, no snapping
-  interact('.window').draggable({
-    inertia: false,
-    allowFrom: '.winbar',
-    listeners: {
-      move(event) {
-        const w = event.target;
-        const curL = parseFloat(w.style.left) || 0;
-        const curT = parseFloat(w.style.top)  || 0;
-        w.style.left = curL + event.dx + 'px';
-        w.style.top  = curT + event.dy + 'px';
+    // 2) DRAG from .winbar
+    interact('.window').draggable({
+      inertia: false,
+      allowFrom: '.winbar',
+      listeners: {
+        move(event) {
+          const w = event.target;
+          const curL = parseFloat(w.style.left) || 0;
+          const curT = parseFloat(w.style.top)  || 0;
+          w.style.left = curL + event.dx + 'px';
+          w.style.top  = curT + event.dy + 'px';
+        }
       }
-    }
-  });
+    });
 
-  // RESIZE: only from left, right, bottom; ignore title bar; no inertia
-  interact('.window').resizable({
-    edges: { left:true, right:true, bottom:true, top:false },
-    inertia: false,
-    ignoreFrom: '.winbar',
-    modifiers: [
-      interact.modifiers.restrictSize({
-        min: { width: 170, height: 110 },
-        max: { width: 900, height: 500 }
-      })
-    ],
-    listeners: {
-      move(event) {
-        const w = event.target;
-        let left = parseFloat(w.style.left) || 0;
-        let top  = parseFloat(w.style.top)  || 0;
+    // 3) RESIZE (ignore .winbar)
+    interact('.window').resizable({
+      edges: { left:true, right:true, bottom:true, top:false },
+      inertia: false,
+      ignoreFrom: '.winbar',
+      modifiers: [
+        interact.modifiers.restrictSize({
+          min: { width: 170, height: 110 },
+          max: { width: 900, height: 500 }
+        })
+      ],
+      listeners: {
+        move(event) {
+          const w = event.target;
+          let left = parseFloat(w.style.left) || 0;
+          let top  = parseFloat(w.style.top)  || 0;
 
-        // adjust position if left/bottom edges moved
-        if (event.edges.left)  left += event.deltaRect.left;
-        if (event.edges.top)   top  += event.deltaRect.top; // though top-edge is disabled
+          if (event.edges.left)  left += event.deltaRect.left;
+          if (event.edges.top)   top  += event.deltaRect.top;
 
-        // apply new size
-        w.style.width  = event.rect.width  + 'px';
-        w.style.height = event.rect.height + 'px';
-        // apply new position
-        w.style.left   = left + 'px';
-        w.style.top    = top  + 'px';
+          w.style.width  = event.rect.width  + 'px';
+          w.style.height = event.rect.height + 'px';
+          w.style.left   = left + 'px';
+          w.style.top    = top  + 'px';
+        }
       }
-    }
-  });
+    });
+
+    // 4) Stream‐switcher for ערוץ 14
+    document.addEventListener('DOMContentLoaded', () => {
+      const select = document.getElementById('ch14-source');
+      const container = document.getElementById('ch14-player');
+      const hlsUrl = 'https://ch14channel14contentb-ioriver-cdn.encoders.immergo.tv/master_3.m3u8';
+
+      select.addEventListener('change', () => {
+        // clear whatever's there
+        container.innerHTML = '';
+
+        if (select.value === 'embed') {
+          const iframe = document.createElement('iframe');
+          iframe.src = 'https://www.livehdtv.com/embed/channel-14-isreal-live/';
+          iframe.allowFullscreen = true;
+          iframe.style.cssText = 'width:100%; height:100%; border:none; display:block;';
+          container.appendChild(iframe);
+
+        } else {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.autoplay = true;
+          video.muted    = true;
+          video.style.cssText = 'width:100%; height:100%; background:#000;';
+          container.appendChild(video);
+
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(hlsUrl);
+            hls.attachMedia(video);
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = hlsUrl;
+          } else {
+            container.innerHTML =
+              '<p style="color:#fff; padding:8px;">הדפדפן שלך לא תומך בהשמעת HLS.</p>';
+          }
+        }
+      });
+    });
   </script>
 </body>
 </html>
